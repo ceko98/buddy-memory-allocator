@@ -10,7 +10,7 @@ class Allocator
 {
 private:
     const static size_t HEAP_SIZE = (1<<9);
-    const static size_t LEAF_SIZE = (1<<3);
+    const static size_t LEAF_SIZE = (1<<5);
     // const static size_t INITIAL_SIZE = (1<<20);
     // const static size_t MIN_BLOCK_SIZE = (1<<4);
     static size_t LEVELS_COUNT;
@@ -44,11 +44,11 @@ private:
     int block_size_to_level(size_t size);
     int index_in_level(char * ptr, int level);
     void * get_block(int level);
-    void set_allocation_map_bit_at(int index, bool to_alloc);
-    void set_split_map_bit_at(int index, bool to_alloc);
+    void set_allocation_map_bit_at(int index);
+    void set_split_map_bit_at(int index);
     void split_blocks(int level);
+    bool is_split_at(int index);
 
-    void alloc_init_lists(int level);
 public:
     static Allocator * get_instance();
 

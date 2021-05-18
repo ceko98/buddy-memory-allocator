@@ -28,7 +28,7 @@ size_t Allocator::size_of_level(int n)
 }
 
 Allocator *Allocator::instance = nullptr;
-size_t Allocator::LEVELS_COUNT = log2(HEAP_SIZE / LEAF_SIZE);
+size_t Allocator::LEVELS_COUNT = log2(HEAP_SIZE / LEAF_SIZE) + 1;
 
 Allocator::Allocator() : heap_beg(nullptr), heap_size(0)
 {
@@ -62,6 +62,8 @@ void Allocator::init_metadata()
         lists[i] = nullptr;
     }
 
+    std::cout << LEAF_SIZE << " " << HEAP_SIZE << " " << LEVELS_COUNT << std::endl;
+
     const size_t num_of_blocks = 1 << LEVELS_COUNT;
     allocated_map = heap_beg + lists_size;
     allocated_map_size = num_of_blocks / 8 + (num_of_blocks % 8 == 1);
@@ -69,6 +71,7 @@ void Allocator::init_metadata()
     split_map_size = num_of_blocks / 8 + (num_of_blocks % 8 == 1);
 
     size_t metadata_size = lists_size + allocated_map_size + split_map_size;
+    std::cout << lists_size << " data size" << std::endl;
 
     for (int i = LEVELS_COUNT - 1; i >= 0; i--)
     {
@@ -77,15 +80,30 @@ void Allocator::init_metadata()
         while (index_ptr < heap_beg + metadata_size)
         {
             int block_index = index_in_level(index_ptr, i);
-            set_allocation_map_bit_at(block_index, true);
-            set_split_map_bit_at(block_index, true);
+            // std::cout << block_index << " ";
+            set_allocation_map_bit_at(block_index);
+            set_split_map_bit_at(block_index);
             index_ptr += level_size;
         }
+            // std::cout << std::endl;
 
+        // std::cout << "offset after init " << index_ptr - heap_beg << std::endl;
+        // std::cout << "level size " << level_size << std::endl;
         if (i != 0 && block_index_on_level(index_ptr, i) % 2 == 1)
         {
             lists[i] = (LevelListPointer)index_ptr;
             lists[i]->next = nullptr;
+        }
+    }
+    
+    // std::cout << "num of blocks " << num_of_blocks << std::endl;
+    // std::cout << "meta data size " << metadata_size << std::endl;
+    
+    for (size_t i = 0; i < num_of_blocks - 1; i++)
+    {
+        if (is_split_at(i))
+        {
+            std::cout << i << std::endl;
         }
     }
 }
@@ -140,7 +158,7 @@ int Allocator::index_in_level(char *ptr, int level)
     return (ptr - heap_beg) / size_of_level(level) + (1 << level) - 1;
 }
 
-void Allocator::set_split_map_bit_at(int index, bool to_alloc)
+void Allocator::set_split_map_bit_at(int index)
 {
     if (index >= (1 << LEVELS_COUNT) - 1)
     {
@@ -148,10 +166,10 @@ void Allocator::set_split_map_bit_at(int index, bool to_alloc)
     }
 
     int bit_index = 7 - (index % 8);
-    allocated_map[index / 8] ^= 1 << bit_index;
+    split_map[index / 8] ^= 1 << bit_index;
 }
 
-void Allocator::set_allocation_map_bit_at(int index, bool to_alloc)
+void Allocator::set_allocation_map_bit_at(int index)
 {
     if (index == 0)
     {
@@ -160,28 +178,42 @@ void Allocator::set_allocation_map_bit_at(int index, bool to_alloc)
 
     int pair_index = index / 2 - (index % 2 == 0);
     int bit_index = 7 - (pair_index % 8);
-    split_map[pair_index / 8] ^= 1 << bit_index;
-}
-
-void alloc_init_lists(int level)
-{
-    // just take the leafs you jerk
+    allocated_map[pair_index / 8] ^= 1 << bit_index;
 }
 
 void Allocator::profile()
 {
+    // for (size_t i = 0; i < LEVELS_COUNT; i++)
+    // {
+    //     LevelListNode *tmp = lists[i];
+    //     std::cout << heap_beg << std::endl;
+    //     std::cout << tmp << std::endl;
+    //     while (tmp)
+    //     {
+    //         std::cout << ((size_t)heap_beg - (size_t)tmp) << " ";
+    //         tmp = tmp->next;
+    //     }
+    //     std::cout << std::endl;
+    // }
+
     for (size_t i = 0; i < LEVELS_COUNT; i++)
     {
-        std::cout << "in for loop" << std::endl;
-
-        LevelListNode *tmp = lists[i];
-        std::cout << heap_beg << std::endl;
-        std::cout << tmp << std::endl;
-        while (tmp)
-        {
-            std::cout << ((size_t)heap_beg - (size_t)tmp) << " ";
-            tmp = tmp->next;
+        if (lists[i] == nullptr) {
+            std::cout << "pointer is null" << std::endl;
+            continue;
         }
-        std::cout << std::endl;
+        std::cout << "pointer at lvl" << i << " " << (char *)lists[i] - heap_beg << std::endl;
     }
+}
+
+bool Allocator::is_split_at(int index)
+{
+    if (index == 0)
+    {
+        return true;
+    }
+
+    int bit_index = 7 - (index % 8);
+
+    return (split_map[index / 8] >> bit_index) & 1;
 }
