@@ -20,13 +20,12 @@ private:
         LevelListNode * next;
         LevelListNode * prev;
     };
-
-    using LevelListPointer = LevelListNode *;
+    typedef LevelListNode * LevelListPointer;
 
     static Allocator * instance;
     char * heap_beg;
     size_t heap_size;
-    LevelListPointer * lists;
+    LevelListPointer *lists;
     size_t lists_size;
     char * allocated_map;
     size_t allocated_map_size;
