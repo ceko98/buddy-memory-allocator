@@ -18,11 +18,7 @@ private:
     struct LevelListNode
     {
         LevelListNode * next;
-    };
-
-    enum Action
-    {
-        Alloc, Free 
+        LevelListNode * prev;
     };
 
     using LevelListPointer = LevelListNode *;
@@ -39,21 +35,30 @@ private:
 
     Allocator();
     void init_metadata();
+
     size_t size_of_level(int n);
     int block_index_on_level(char * ptr, int level);
+    int block_index(char * ptr, int level);
     int block_size_to_level(size_t size);
-    int index_in_level(char * ptr, int level);
-    void * get_block(int level);
-    void set_allocation_map_bit_at(int index);
-    void set_split_map_bit_at(int index);
-    void split_blocks(int level);
-    bool is_split_at(int index);
 
+    void set_allocation_map_bit_at(int index);
+    void set_split_map_bit_at(int index, bool bit);
+    
+    bool block_has_been_split(char *ptr, int level);
+    int block_level_from_pointer(char *ptr);
+    bool allocation_check(int index);
+    bool split_check(int index);
+
+    void * get_block(int level);
+    void split_blocks(int level);
+    void merge_blocks(int pair_index, int block_level);
+
+    void remove_node(LevelListPointer &list, LevelListNode*  node);
 public:
     static Allocator * get_instance();
 
     void * allocate(size_t size);
-    void free();
+    void free(void * ptr);
     ~Allocator();
 
     void profile();
