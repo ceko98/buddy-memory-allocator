@@ -1,5 +1,6 @@
 #include <cstddef>
 #include <cmath>
+#include <cstdint>
 
 #ifndef __ALLOCATOR_H__
 #define __ALLOCATOR_H__
@@ -9,7 +10,7 @@
 class Allocator
 {
 private:
-    const static size_t HEAP_SIZE = (1<<9);
+    const static size_t HEAP_SIZE = (1<<10);
     const static size_t LEAF_SIZE = (1<<5);
     // const static size_t INITIAL_SIZE = (1<<20);
     // const static size_t MIN_BLOCK_SIZE = (1<<4);
@@ -23,28 +24,25 @@ private:
     typedef LevelListNode * LevelListPointer;
 
     static Allocator * instance;
-    char * heap_beg;
+    uint8_t * heap_beg;
     size_t heap_size;
     LevelListPointer *lists;
-    size_t lists_size;
-    char * allocated_map;
-    size_t allocated_map_size;
-    char * split_map;
-    size_t split_map_size;
+    uint8_t * allocation_map;
+    uint8_t * split_map;
 
     Allocator();
     void init_metadata();
 
     size_t size_of_level(int n);
-    int block_index_on_level(char * ptr, int level);
-    int block_index(char * ptr, int level);
+    int block_index_on_level(uint8_t * ptr, int level);
+    int block_index(uint8_t * ptr, int level);
     int block_size_to_level(size_t size);
 
     void set_allocation_map_bit_at(int index);
     void set_split_map_bit_at(int index, bool bit);
     
-    bool block_has_been_split(char *ptr, int level);
-    int block_level_from_pointer(char *ptr);
+    bool block_has_been_split(uint8_t *ptr, int level);
+    int block_level_from_pointer(uint8_t *ptr);
     bool allocation_check(int index);
     bool split_check(int index);
 
