@@ -2,6 +2,7 @@
 #include <exception>
 #include <cmath>
 #include <iostream>
+#include <mutex>
 #include "../include/Allocator.h"
 
 using std::cout;
@@ -53,7 +54,11 @@ Allocator *Allocator::get_instance()
 {
     if (!instance)
     {
-        instance = new Allocator();
+        std::lock_guard<std::mutex> lock(init_mutex);
+        if (!instance)
+        {
+            instance = new Allocator();
+        }
     }
     return instance;
 }

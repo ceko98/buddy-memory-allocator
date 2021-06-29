@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cmath>
 #include <cstdint>
+#include <mutex>
 
 #ifndef __ALLOCATOR_H__
 #define __ALLOCATOR_H__
@@ -10,6 +11,8 @@
 class Allocator
 {
 private:
+    static std::mutex init_mutex;
+
     const static size_t HEAP_SIZE = (1<<10);
     const static size_t LEAF_SIZE = (1<<5);
     // const static size_t INITIAL_SIZE = (1<<20);
