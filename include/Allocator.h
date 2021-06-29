@@ -51,6 +51,9 @@ private:
     void merge_blocks(int pair_index, int block_level);
 
     void remove_node(LevelListPointer &list, LevelListNode*  node);
+
+    void * operator new(size_t sz);
+    void operator delete(void * ptr);
 public:
     static Allocator * get_instance();
 

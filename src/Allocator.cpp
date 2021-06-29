@@ -42,7 +42,6 @@ Allocator::Allocator() : heap_beg(nullptr), heap_size(0)
     {
         throw std::bad_alloc();
     }
-
     init_metadata();
 }
 
@@ -52,19 +51,17 @@ Allocator *Allocator::get_instance()
     {
         instance = new Allocator();
     }
-
     return instance;
 }
 
 void Allocator::init_metadata()
 {
     lists = (LevelListPointer *)heap_beg;
-    const size_t lists_size = LEVELS_COUNT * sizeof(LevelListPointer *);
+    const size_t lists_size = LEVELS_COUNT * sizeof(LevelListPointer);
     for (int i = 0; i < LEVELS_COUNT; i++)
     {
         lists[i] = nullptr;
     }
-
     const size_t num_of_blocks = 1 << LEVELS_COUNT;
 
     allocation_map = heap_beg + lists_size;
@@ -74,7 +71,6 @@ void Allocator::init_metadata()
     const size_t split_map_size = num_of_blocks / 8 + (num_of_blocks % 8 == 1);
 
     size_t metadata_size = lists_size + allocation_map_size + split_map_size;
-
     for (int lvl = LEVELS_COUNT - 1; lvl >= 0; lvl--)
     {
         size_t level_size = size_of_level(lvl);
@@ -99,11 +95,14 @@ void Allocator::init_metadata()
 void *Allocator::allocate(size_t size)
 {
     size_t return_block_size = compute_pow_2(size);
+    if (return_block_size < LEAF_SIZE) {
+        return_block_size = LEAF_SIZE;
+    }
     int block_level = block_size_to_level(return_block_size);
-    // void *block = get_block(block_level);
-    // cout << "allocate from " << (uint8_t *)block - heap_beg
-    //     << " to " << (uint8_t *)block - heap_beg + return_block_size << endl;
-    // return block;
+    void *block = get_block(block_level);
+    cout << "allocate from " << (uint8_t *)block - heap_beg
+        << " to " << (uint8_t *)block - heap_beg + return_block_size << endl;
+    return block;
     return get_block(block_level);
 }
 
@@ -153,8 +152,8 @@ void Allocator::free(void *ptr)
     int block_level = block_level_from_pointer((uint8_t *)ptr);
     int index = block_index((uint8_t *)ptr, block_level);
 
-    // cout << "free block form " << (uint8_t *)ptr - heap_beg
-    //     << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level) << endl;
+    cout << "free block form " << (uint8_t *)ptr - heap_beg
+        << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level) << endl;
     set_allocation_map_bit_at(index);
     LevelListNode *block = (LevelListNode *)ptr;
     block->next = lists[block_level];
@@ -256,31 +255,6 @@ void Allocator::set_allocation_map_bit_at(int index)
     allocation_map[pair_index / 8] ^= 1 << bit_index;
 }
 
-void Allocator::profile()
-{
-    for (size_t i = 0; i < LEVELS_COUNT; i++)
-    {
-        if (lists[i] == nullptr)
-        {
-            std::cout << "pointer is null" << std::endl;
-            continue;
-        }
-        std::cout << "pointer at lvl" << i << " " << (uint8_t *)lists[i] - heap_beg << std::endl;
-    }
-
-    // size_t blocks_to_split = 1 << (LEVELS_COUNT - 1);
-    // size_t blocks_all = 1 << (LEVELS_COUNT);
-    // for (size_t i = 0; i < blocks_to_split - 1; i++)
-    // {
-    //    cout << "split bit for " << i << " " << split_check(i) << endl;
-    // }
-
-    // for (size_t i = 0; i < blocks_all - 1; i++)
-    // {
-    //    cout << "allocated bit for " << i << " " << allocation_check(i) << endl;
-    // }
-}
-
 bool Allocator::block_has_been_split(uint8_t *ptr, int level)
 {
     int index = block_index(ptr, level);
@@ -324,4 +298,18 @@ void Allocator::remove_node(LevelListPointer &list, LevelListNode *node)
     {
         list = node->next;
     }
+}
+
+void * Allocator::operator new(size_t sz)
+{
+    if (void *ptr = std::malloc(sz))
+    {
+        return ptr;
+    }
+    throw std::bad_alloc{};
+}
+
+void Allocator::operator delete(void * ptr)
+{
+    std::free(ptr);
 }
