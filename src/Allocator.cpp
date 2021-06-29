@@ -7,11 +7,7 @@
 using std::cout;
 using std::endl;
 
-int lower_pow_2(size_t num)
-{
-    return pow(2, (int)log2(num));
-}
-
+// Calculate the lowest power of 2 higher that a given number
 size_t compute_pow_2(size_t v)
 {
     v--;
@@ -20,9 +16,17 @@ size_t compute_pow_2(size_t v)
     v |= v >> 4;
     v |= v >> 8;
     v |= v >> 16;
+    v |= v >> 32;
     v++;
-
     return v;
+}
+
+// Calculate the highest powe of 2 lower that a given number
+size_t lower_pow_2(size_t num)
+{
+    size_t higher_pow = compute_pow_2(num);
+    return higher_pow >> 1;
+    return pow(2, (int)log2(num));
 }
 
 size_t Allocator::size_of_level(int n)
@@ -38,7 +42,7 @@ Allocator::Allocator() : heap_beg(nullptr), heap_size(0)
     heap_beg = static_cast<uint8_t *>(malloc(HEAP_SIZE));
     heap_size = HEAP_SIZE;
 
-    if (heap_beg == nullptr)
+    if (!heap_beg)
     {
         throw std::bad_alloc();
     }
@@ -47,7 +51,7 @@ Allocator::Allocator() : heap_beg(nullptr), heap_size(0)
 
 Allocator *Allocator::get_instance()
 {
-    if (instance == nullptr)
+    if (!instance)
     {
         instance = new Allocator();
     }
@@ -79,7 +83,7 @@ void Allocator::init_metadata()
         {
             int index = block_index(index_ptr, lvl);
             set_allocation_map_bit_at(index);
-            set_split_map_bit_at(index, 1);
+            set_split_map_bit_at(index, true);
             index_ptr += level_size;
         }
 
@@ -103,7 +107,7 @@ void *Allocator::allocate(size_t size)
     cout << "allocate from " << (uint8_t *)block - heap_beg
         << " to " << (uint8_t *)block - heap_beg + return_block_size << endl;
     return block;
-    return get_block(block_level);
+    // return get_block(block_level);
 }
 
 void *Allocator::get_block(int level)
@@ -136,7 +140,7 @@ void Allocator::split_blocks(int level)
     lists[level] = current_level_block->next;
 
     int current_level_block_index = block_index((uint8_t *)current_level_block, level);
-    set_split_map_bit_at(current_level_block_index, 1);
+    set_split_map_bit_at(current_level_block_index, true);
     set_allocation_map_bit_at(current_level_block_index);
 
     lists[level + 1] = current_level_block;
@@ -186,7 +190,7 @@ void Allocator::merge_blocks(int index, int level)
     merged_block->next = lists[level - 1];
     lists[level - 1] = merged_block;
     int merged_block_index = block_index((uint8_t *)merged_block, level - 1);
-    set_split_map_bit_at(merged_block_index, 0);
+    set_split_map_bit_at(merged_block_index, false);
     set_allocation_map_bit_at(merged_block_index);
 
     if (!allocation_check(merged_block_index))
