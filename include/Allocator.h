@@ -12,6 +12,7 @@ class Allocator
 {
 private:
     static std::mutex init_mutex;
+    static std::mutex alloc_free_mutex;
 
     const static size_t HEAP_SIZE = (1<<10);
     const static size_t LEAF_SIZE = (1<<5);

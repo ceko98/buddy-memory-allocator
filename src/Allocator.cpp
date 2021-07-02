@@ -35,6 +35,9 @@ size_t Allocator::size_of_level(int n)
     return heap_size / (1 << n);
 }
 
+std::mutex Allocator::init_mutex;
+std::mutex Allocator::alloc_free_mutex;
+
 Allocator *Allocator::instance = nullptr;
 size_t Allocator::LEVELS_COUNT = log2(HEAP_SIZE / LEAF_SIZE) + 1;
 
@@ -103,6 +106,8 @@ void Allocator::init_metadata()
 
 void *Allocator::allocate(size_t size)
 {
+    std::lock_guard<std::mutex> lock(alloc_free_mutex);
+    
     size_t return_block_size = compute_pow_2(size);
     if (return_block_size < LEAF_SIZE) {
         return_block_size = LEAF_SIZE;
@@ -158,11 +163,13 @@ void Allocator::split_blocks(int level)
 
 void Allocator::free(void *ptr)
 {
+    std::lock_guard<std::mutex> lock(alloc_free_mutex);
+
     int block_level = block_level_from_pointer((uint8_t *)ptr);
     int index = block_index((uint8_t *)ptr, block_level);
 
-    cout << "free block form " << (uint8_t *)ptr - heap_beg
-        << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level) << endl;
+    // cout << "free block form " << (uint8_t *)ptr - heap_beg
+    //     << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level) << endl;
     set_allocation_map_bit_at(index);
     LevelListNode *block = (LevelListNode *)ptr;
     block->next = lists[block_level];
