@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <mutex>
+#include <thread>
 #include "../include/Allocator.h"
 
 using std::cout;
@@ -115,7 +116,8 @@ void *Allocator::allocate(size_t size)
     int block_level = block_size_to_level(return_block_size);
     void *block = get_block(block_level);
     cout << "allocate from " << (uint8_t *)block - heap_beg
-        << " to " << (uint8_t *)block - heap_beg + return_block_size << endl;
+        << " to " << (uint8_t *)block - heap_beg + return_block_size
+        << " for thread " << std::this_thread::get_id() << endl;
     return block;
     // return get_block(block_level);
 }
@@ -168,11 +170,13 @@ void Allocator::free(void *ptr)
     int block_level = block_level_from_pointer((uint8_t *)ptr);
     int index = block_index((uint8_t *)ptr, block_level);
 
-    // cout << "free block form " << (uint8_t *)ptr - heap_beg
-    //     << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level) << endl;
+    cout << "free block form " << (uint8_t *)ptr - heap_beg
+        << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level)
+        << " for thread " << std::this_thread::get_id() << endl;
     set_allocation_map_bit_at(index);
     LevelListNode *block = (LevelListNode *)ptr;
     block->next = lists[block_level];
+    block->prev = nullptr;
     lists[block_level] = block;
     if (!allocation_check(index))
     {

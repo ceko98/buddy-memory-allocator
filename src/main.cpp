@@ -1,5 +1,9 @@
 #include "../include/Allocator.h"
 #include <iostream>
+#include <thread>
+#include <mutex>
+
+using namespace std::chrono_literals;
 
 class A
 {
@@ -17,9 +21,24 @@ void operator delete(void * ptr) {
     Allocator::get_instance()->free(ptr);
 }
 
+void allocate()
+{
+
+    int * a = new int;
+    std::this_thread::sleep_for(5ms);
+    delete a;
+}
+
 int main()
 {
-    A * a = new A();
-    delete a;
+    std::thread t1(allocate);
+    std::thread t2(allocate);
+    std::thread t3(allocate);
+
+    t1.join();
+    t2.join();
+    t3.join();
+    // A * a = new A();
+    // delete a;
     return 0;
 }
