@@ -53,7 +53,7 @@ Allocator::Allocator(bool debug) : heap_beg(nullptr), heap_size(0), debug(debug)
     init_metadata();
 }
 
-Allocator *Allocator::get_instance(bool debug = false)
+Allocator *Allocator::get_instance(bool debug)
 {
     if (!instance)
     {
@@ -83,6 +83,8 @@ void Allocator::init_metadata()
     const size_t split_map_size = num_of_blocks / 8 + (num_of_blocks % 8 == 1);
 
     size_t metadata_size = lists_size + allocation_map_size + split_map_size;
+
+    cout << metadata_size << endl;
     for (int lvl = LEVELS_COUNT - 1; lvl >= 0; lvl--)
     {
         size_t level_size = size_of_level(lvl);
@@ -177,7 +179,7 @@ void Allocator::free(void *ptr)
             << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level)
             << " for thread " << std::this_thread::get_id() << endl;
     }
-    
+
     set_allocation_map_bit_at(index);
     LevelListNode *block = (LevelListNode *)ptr;
     block->next = lists[block_level];

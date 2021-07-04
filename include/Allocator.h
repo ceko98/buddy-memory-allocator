@@ -64,7 +64,7 @@ private:
     void * operator new(size_t sz);
     void operator delete(void * ptr);
 public:
-    static Allocator * get_instance(bool debug);
+    static Allocator * get_instance(bool debug = false);
 
     void * allocate(size_t size);
     void free(void * ptr);
