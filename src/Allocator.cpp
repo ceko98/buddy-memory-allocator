@@ -28,7 +28,6 @@ size_t lower_pow_2(size_t num)
 {
     size_t higher_pow = compute_pow_2(num);
     return higher_pow >> 1;
-    return pow(2, (int)log2(num));
 }
 
 size_t Allocator::size_of_level(int n)
@@ -42,7 +41,7 @@ std::mutex Allocator::alloc_free_mutex;
 Allocator *Allocator::instance = nullptr;
 size_t Allocator::LEVELS_COUNT = log2(HEAP_SIZE / LEAF_SIZE) + 1;
 
-Allocator::Allocator() : heap_beg(nullptr), heap_size(0)
+Allocator::Allocator(bool debug) : heap_beg(nullptr), heap_size(0), debug(debug)
 {
     heap_beg = static_cast<uint8_t *>(malloc(HEAP_SIZE));
     heap_size = HEAP_SIZE;
@@ -54,14 +53,14 @@ Allocator::Allocator() : heap_beg(nullptr), heap_size(0)
     init_metadata();
 }
 
-Allocator *Allocator::get_instance()
+Allocator *Allocator::get_instance(bool debug = false)
 {
     if (!instance)
     {
         std::lock_guard<std::mutex> lock(init_mutex);
         if (!instance)
         {
-            instance = new Allocator();
+            instance = new Allocator(debug);
         }
     }
     return instance;
@@ -115,11 +114,13 @@ void *Allocator::allocate(size_t size)
     }
     int block_level = block_size_to_level(return_block_size);
     void *block = get_block(block_level);
-    cout << "allocate from " << (uint8_t *)block - heap_beg
-        << " to " << (uint8_t *)block - heap_beg + return_block_size
-        << " for thread " << std::this_thread::get_id() << endl;
+    if (debug)
+    {
+        cout << "allocate from " << (uint8_t *)block - heap_beg
+            << " to " << (uint8_t *)block - heap_beg + return_block_size
+            << " for thread " << std::this_thread::get_id() << endl;
+    }
     return block;
-    // return get_block(block_level);
 }
 
 void *Allocator::get_block(int level)
@@ -170,9 +171,13 @@ void Allocator::free(void *ptr)
     int block_level = block_level_from_pointer((uint8_t *)ptr);
     int index = block_index((uint8_t *)ptr, block_level);
 
-    cout << "free block form " << (uint8_t *)ptr - heap_beg
-        << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level)
-        << " for thread " << std::this_thread::get_id() << endl;
+    if (debug)
+    {
+        cout << "free block form " << (uint8_t *)ptr - heap_beg
+            << " to " << (uint8_t *)ptr - heap_beg + size_of_level(block_level)
+            << " for thread " << std::this_thread::get_id() << endl;
+    }
+    
     set_allocation_map_bit_at(index);
     LevelListNode *block = (LevelListNode *)ptr;
     block->next = lists[block_level];

@@ -7,6 +7,7 @@
 #define __ALLOCATOR_H__
 
 #define MAX_LEVELS 32
+#define MIN_LEAF_SIZE 16
 
 class Allocator
 {
@@ -14,10 +15,13 @@ private:
     static std::mutex init_mutex;
     static std::mutex alloc_free_mutex;
 
+    /*
+    Change these values to adjust:
+    - the total allocated space
+    - the size of the minimal allocated block 
+    */
     const static size_t HEAP_SIZE = (1<<10);
     const static size_t LEAF_SIZE = (1<<5);
-    // const static size_t INITIAL_SIZE = (1<<20);
-    // const static size_t MIN_BLOCK_SIZE = (1<<4);
     static size_t LEVELS_COUNT;
     
     struct LevelListNode
@@ -33,8 +37,9 @@ private:
     LevelListPointer *lists;
     uint8_t * allocation_map;
     uint8_t * split_map;
+    bool debug;
 
-    Allocator();
+    Allocator(bool debug);
     void init_metadata();
 
     size_t size_of_level(int n);
@@ -59,13 +64,11 @@ private:
     void * operator new(size_t sz);
     void operator delete(void * ptr);
 public:
-    static Allocator * get_instance();
+    static Allocator * get_instance(bool debug);
 
     void * allocate(size_t size);
     void free(void * ptr);
     ~Allocator();
-
-    void profile();
 };
 
 #endif
